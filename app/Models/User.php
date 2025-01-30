@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Auction;
+use Laravel\Passport\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +25,7 @@ class User extends Authenticatable
         'password',
         'role'
     ];
+    protected $appends = ['avatar_url'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -33,6 +35,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verified_at',
+        'created_at',
+        'email'
     ];
 
     /**
@@ -52,5 +57,28 @@ class User extends Authenticatable
     public function Auctions()
     {
         return $this->hasMany(Auction::class, 'author_id');
+    }
+    public function Offers()
+    {
+        return $this->hasMany(Offer::class, 'author_id');
+    }
+    public function getAvatarUrlAttribute()
+    {
+        $hash = hash( 'sha256', strtolower( trim( $this->email ) ) );
+        return sprintf( 'https://www.gravatar.com/avatar/%s?d=identicon', $hash );
+    }
+
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+    public function isAuctionAuthor(Auction $auction): bool
+    {
+        return $this->id === $auction->author_id;
+    }
+    public function isOfferAuthor(Offer $offer): bool
+    {
+        return $this->id === $offer->author_id;
     }
 }
